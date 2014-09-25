@@ -1,24 +1,46 @@
 Db = require 'db'
+Plugin = require 'plugin'
 
-exports.onInstall = ->
-	# set the counter to 0 on plugin installation
-	Db.shared.set 'counter', 0
+exports.client_new = (d) !->
+	id = Db.shared.incr 'storyId'
+	Db.shared.set 'stories', id,
+		text: d.text
+		title: d.title
+		etime: 0|Plugin.time()
+		comments: 0
+		user: Plugin.userId()
 
-# exported functions prefixed with 'client_' are callable by our client code using `require('plugin').rpc`
-exports.client_incr = ->
-	log 'hello world!' # write to the plugin origin's log
-	Db.shared.modify 'counter', (v) -> v+1
+checkPath = (path) !->
+	for x in path
+		if ''+(0|x) != ''+x
+			throw new Error("invalid path term: "+x)
 
-exports.client_getTime = (cb) ->
-	cb.reply new Date()
+makePath = (path) ->
+	res = []
+	for x,n in path
+		res.push 'c' if n
+		res.push x
+	res
 
-exports.client_error = ->
-	{}.noSuchMethod()
+exports.client_up = (path) !->
+	checkPath path
+	value = Db.personal().modify 'up', path.join(' '), (v) -> !v
+	
+	args = makePath path
+	args.push 'etime', if value then 900 else -900
+	
+	stories = Db.shared.ref 'stories'
+	stories.incr.apply stories, args
 
-exports.onHttp = (request) ->
-	if (data = request.data)?
-		Db.shared.set 'http', data
-	else
-		data = Db.shared.get('http')
-	request.respond 200, data || "no data"
+exports.client_reply = (path, text) !->
+	checkPath path
+	stories = Db.shared.ref 'stories'
+	commentId = stories.incr(path[0], 'comments')
+	args = makePath path
+	args.push 'c', commentId,
+		text: text
+		etime: 0|Plugin.time()
+		user: Plugin.userId()
+
+	stories.set.apply stories, args
 
