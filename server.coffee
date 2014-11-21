@@ -6,7 +6,6 @@ exports.client_new = (d) !->
 	Db.shared.set 'stories', id,
 		text: d.text
 		title: d.title
-		etime: 0|Plugin.time()
 		comments: 0
 		user: Plugin.userId()
 
@@ -24,10 +23,12 @@ makePath = (path) ->
 
 exports.client_up = (path) !->
 	checkPath path
-	value = Db.personal().modify 'up', path.join(' '), (v) -> !v
+	up = Db.personal().createRef 'up'
+	args = path.concat([(v) -> !v])
+	value = up.modify.apply up, args
 	
 	args = makePath path
-	args.push 'etime', if value then 900 else -900
+	args.push 'votes', if value then 1 else -1
 	
 	stories = Db.shared.ref 'stories'
 	stories.incr.apply stories, args
@@ -39,7 +40,6 @@ exports.client_reply = (path, text) !->
 	args = makePath path
 	args.push 'c', commentId,
 		text: text
-		etime: 0|Plugin.time()
 		user: Plugin.userId()
 
 	stories.set.apply stories, args
