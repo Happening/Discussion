@@ -1,5 +1,5 @@
-Example
-=======
+Discussion
+==========
 
 A very basic threaded discussion forum with upvoting for Happening.
 

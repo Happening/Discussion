@@ -1,5 +1,5 @@
 name: Discussion
-description: A very basic threaded discussion forum with upvoting.
+description: A basic threaded discussion forum with upvoting.
 icon: law
 api: 2
-store: 700
+store: 1104
