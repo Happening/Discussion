@@ -14,14 +14,14 @@ Ui = require 'ui'
 renderStory = (storyId) ->
 	story = Db.shared.ref 'stories', storyId
 	Event.showStar story.get('title') if !Db.shared.get('single')
-	Dom.div !->
-		Dom.style margin: '-8px', background: '#fff', borderBottom: '2px solid #ccc', padding: '8px'
+	Ui.top !->
+		Dom.style margin: 0
 		Ui.avatar Plugin.userAvatar(story.get('user')), style: float: 'right'
 		Dom.h2 !->
 			Dom.userText story.get('title'), {br:false}
 		Dom.div !->
 			Dom.userText text if text=story.get('text')
-		renderComments story, [storyId]
+	renderComments story, [storyId]
 
 renderUpvoter = (path, votesObs, size = 50) ->
 	if path not instanceof Array
@@ -59,19 +59,13 @@ reply = (path) !->
 			parent = parent.ref 'c', path[i]
 		Dom.cls 'reply'
 
-		Page.setTitle tr("Reply to %1", Plugin.userName(parent.get('user')))
-		#Dom.h2 tr("%1 said:",Plugin.userName(parent.get('user')))
-		title = parent.get('title')
-		if title
+		Ui.top !->
+			Ui.avatar Plugin.userAvatar(parent.get('user')), style: float: 'right'
+			Dom.h2 !->
+				Dom.userText parent.get('title'), {br:false}
 			Dom.div !->
-				Dom.style fontWeight: "bold"
-				Dom.userText title, {br:false}
-		Dom.userText parent.get('text')
+				Dom.userText text if text=parent.get('text')
 
-		Dom.br()
-		Dom.br()
-
-		#Dom.h2 tr "Your reply:"
 		Form.text name: 'reply', text: tr("Your reply")
 
 		Form.setPageSubmit (data) !->
@@ -83,13 +77,12 @@ reply = (path) !->
 
 renderComments = (base,path,margin=0,hide=false) !->
 	if path.length is 1
-		Dom.span !->
-			Dom.style color: Plugin.colors().highlight, fontSize: '85%', position: 'relative', padding: '3px 5px', left: '-5px'
+		Dom.div !->
+			Dom.style color: Plugin.colors().highlight, fontSize: '85%', padding: '12px', margin: '0', display: 'inline-block'
 			Dom.text tr("Reply")
 			Dom.onTap  !->
 				reply path
 
-	
 	up = Db.personal.ref('up')
 	base.iterate 'c', (comment) ->
 		Dom.div !->
@@ -152,6 +145,7 @@ exports.render = ->
 	if storyId = (storyId || +Page.state.get(0))
 		return renderStory storyId
 
+	Page.setCardBackground()
 	Ui.list !->
 		Db.shared.iterate 'stories', (story) !->
 			Ui.item !->
@@ -164,6 +158,7 @@ exports.render = ->
 					Dom.div !->
 						Dom.style Flex: 1, margin: '5px 0 5px 8px', color: (if Event.isNew(story.get('time')) then '#5b0' else 'inherit')
 						Dom.userText story.get('title'), {br:false}
+					Event.renderBubble story.key()
 					Dom.div !->
 						Dom.style
 							color: 'white'
@@ -186,11 +181,9 @@ exports.render = ->
 			Dom.onTap !->
 				Page.nav !->
 					Page.setTitle("New topic")
-					Dom.style padding: '12px'
 					Form.input
 						name: 'title'
 						text: tr 'Title'
-					Dom.br()
 					Form.text
 						name: 'text'
 						text: tr 'Info, details, your opinion, etc...'
